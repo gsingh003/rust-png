@@ -13,20 +13,10 @@ pub enum ColorType {
     Rgb,
     GrayscaleAlpha,
     Rgba,
-    Indexed, // Add more color types as needed
+    Indexed,
 }
 
 impl ColorType {
-    fn allowed_bit_depths(&self) -> &'static [u8] {
-        match self {
-            Self::Grayscale => &[1, 2, 4, 8, 16],
-            Self::Rgb => &[8, 16],
-            Self::GrayscaleAlpha => &[8, 16],
-            Self::Rgba => &[8, 16],
-            Self::Indexed => &[1, 2, 4, 8],
-        }
-    }
-
     fn png_header_code(&self) -> u8 {
         match self {
             ColorType::Grayscale => 0,
@@ -44,24 +34,6 @@ impl ColorType {
             ColorType::GrayscaleAlpha => 2,
             ColorType::Rgba => 4,
             ColorType::Indexed => 1,
-        }
-    }
-
-    fn bytes_per_sample(&self, bit_depth: u8) -> usize {
-        if bit_depth == 16 {
-            2
-        } else {
-            1
-        }
-    }
-
-    fn samples_per_pixel(&self) -> usize {
-        match self {
-            Self::Grayscale => 1,
-            Self::Rgb => 3,
-            Self::GrayscaleAlpha => 2,
-            Self::Rgba => 4,
-            Self::Indexed => 1,
         }
     }
 
@@ -105,7 +77,6 @@ impl PngImage {
     }
 
     pub fn add_pixel(&mut self, components: &[u8]) -> Result<(), PngError> {
-        // Validate component count
         self.color_type.validate_components(components)?;
 
         // Check pixel count
@@ -126,7 +97,6 @@ impl PngImage {
     fn generate_ihdr(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(13);
 
-        // Width and height
         data.extend_from_slice(&self.width.to_be_bytes());
         data.extend_from_slice(&self.height.to_be_bytes());
 
@@ -182,7 +152,6 @@ impl PngImage {
         let ihdr_data = self.generate_ihdr();
         ChunkWriter::write_chunk(writer, b"IHDR", &ihdr_data)?;
 
-        // Write PLTE chunk if needed
         if let Some(palette) = &self.palette {
             ChunkWriter::write_chunk(writer, b"PLTE", palette)?;
         }
@@ -192,11 +161,7 @@ impl PngImage {
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(&filtered)?;
         let compressed = encoder.finish()?;
-
-        // Write IDAT chunk
         ChunkWriter::write_chunk(writer, b"IDAT", &compressed)?;
-
-        // Write IEND chunk
         ChunkWriter::write_chunk(writer, b"IEND", &[])?;
 
         Ok(())
