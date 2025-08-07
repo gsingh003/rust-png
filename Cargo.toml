@@ -1,0 +1,9 @@
+[package]
+name = "png"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crc = "3.2.1"
+flate2 = "1.0.35"
+thiserror = "2.0.11"
